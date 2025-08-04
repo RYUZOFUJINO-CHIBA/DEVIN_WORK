@@ -47,6 +47,7 @@ function App() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingRequest, setEditingRequest] = useState<EstimationRequest | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
   const [formData, setFormData] = useState({
     request_date: new Date().toISOString().split('T')[0],
     desired_estimation_date: '',
@@ -175,11 +176,16 @@ function App() {
     })
   }
 
-  const filteredRequests = requests.filter(request =>
-    request.project_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    request.zac_project_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    request.sales_person?.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filteredRequests = requests.filter(request => {
+    const matchesSearch = searchTerm === '' || 
+      request.project_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.zac_project_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.sales_person?.toLowerCase().includes(searchTerm.toLowerCase())
+    
+    const matchesStatus = statusFilter === 'all' || request.status === statusFilter
+    
+    return matchesSearch && matchesStatus
+  })
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
@@ -363,14 +369,32 @@ function App() {
         <CardHeader>
           <div className="flex justify-between items-center">
             <CardTitle>積算依頼一覧</CardTitle>
-            <div className="flex items-center space-x-2">
-              <Search className="h-4 w-4" />
-              <Input
-                placeholder="案件名、ZAC番号、営業担当で検索..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-64"
-              />
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <Label htmlFor="status-filter">ステータス:</Label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="全て" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">全て</SelectItem>
+                    {STATUS_OPTIONS.map((status) => (
+                      <SelectItem key={status} value={status}>
+                        {status}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Search className="h-4 w-4" />
+                <Input
+                  placeholder="案件名、ZAC番号、営業担当で検索..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-64"
+                />
+              </div>
             </div>
           </div>
         </CardHeader>
