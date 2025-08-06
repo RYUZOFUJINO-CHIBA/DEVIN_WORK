@@ -9,38 +9,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
+import { supabase, EstimationRequest, STATUS_OPTIONS } from './lib/supabase'
 
-interface EstimationRequest {
-  id: number
-  request_date: string
-  desired_estimation_date?: string
-  project_name: string
-  zac_project_number?: string
-  sales_person?: string
-  estimation_person?: string
-  status: string
-  estimation?: string
-  completion_date?: string
-  remarks?: string
-  estimation_materials?: string
-  box_url?: string
-  others?: string
-  created_at: string
-  updated_at: string
-}
-
-const STATUS_OPTIONS = [
-  "未着手",
-  "資料待ち", 
-  "着手中",
-  "検討中",
-  "見積もり待",
-  "ZAC登録待",
-  "完了",
-  "中止"
-]
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 function App() {
   const [requests, setRequests] = useState<EstimationRequest[]>([])
@@ -70,9 +40,16 @@ function App() {
 
   const fetchRequests = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/estimation-requests`)
-      const data = await response.json()
-      setRequests(data)
+      const { data, error } = await supabase
+        .from('estimation_requests')
+        .select('*')
+        .order('created_at', { ascending: false })
+      
+      if (error) {
+        console.error('Error fetching requests:', error)
+      } else {
+        setRequests(data || [])
+      }
     } catch (error) {
       console.error('Error fetching requests:', error)
     }
@@ -81,42 +58,46 @@ function App() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      const url = editingRequest 
-        ? `${API_URL}/api/estimation-requests/${editingRequest.id}`
-        : `${API_URL}/api/estimation-requests`
-      
-      const method = editingRequest ? 'PUT' : 'POST'
-      
       const submitData = {
-        ...formData,
+        request_date: formData.request_date || null,
         desired_estimation_date: formData.desired_estimation_date || null,
-        completion_date: formData.completion_date || null,
+        project_name: formData.project_name || null,
         zac_project_number: formData.zac_project_number || null,
         sales_person: formData.sales_person || null,
         estimation_person: formData.estimation_person || null,
+        status: formData.status || null,
         estimation: formData.estimation || null,
+        completion_date: formData.completion_date || null,
         remarks: formData.remarks || null,
         estimation_materials: formData.estimation_materials || null,
         box_url: formData.box_url || null,
-        others: formData.others || null
+        others: formData.others || null,
       }
-      
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(submitData),
-      })
 
-      if (response.ok) {
-        await fetchRequests()
-        setIsDialogOpen(false)
-        resetForm()
+      if (editingRequest) {
+        const { error } = await supabase
+          .from('estimation_requests')
+          .update({ ...submitData, updated_at: new Date().toISOString() })
+          .eq('id', editingRequest.id)
+        
+        if (error) {
+          console.error('Error updating request:', error)
+          return
+        }
       } else {
-        const errorData = await response.json()
-        console.error('Error response:', errorData)
+        const { error } = await supabase
+          .from('estimation_requests')
+          .insert([submitData])
+        
+        if (error) {
+          console.error('Error creating request:', error)
+          return
+        }
       }
+
+      await fetchRequests()
+      setIsDialogOpen(false)
+      resetForm()
     } catch (error) {
       console.error('Error saving request:', error)
     }
@@ -125,10 +106,14 @@ function App() {
   const handleDelete = async (id: number) => {
     if (confirm('この積算依頼を削除しますか？')) {
       try {
-        const response = await fetch(`${API_URL}/api/estimation-requests/${id}`, {
-          method: 'DELETE',
-        })
-        if (response.ok) {
+        const { error } = await supabase
+          .from('estimation_requests')
+          .delete()
+          .eq('id', id)
+
+        if (error) {
+          console.error('Error deleting request:', error)
+        } else {
           await fetchRequests()
         }
       } catch (error) {
@@ -140,13 +125,13 @@ function App() {
   const handleEdit = (request: EstimationRequest) => {
     setEditingRequest(request)
     setFormData({
-      request_date: request.request_date,
+      request_date: request.request_date || '',
       desired_estimation_date: request.desired_estimation_date || '',
-      project_name: request.project_name,
+      project_name: request.project_name || '',
       zac_project_number: request.zac_project_number || '',
       sales_person: request.sales_person || '',
       estimation_person: request.estimation_person || '',
-      status: request.status,
+      status: request.status || '未着手',
       estimation: request.estimation || '',
       completion_date: request.completion_date || '',
       remarks: request.remarks || '',
@@ -178,7 +163,7 @@ function App() {
 
   const filteredRequests = requests.filter(request => {
     const matchesSearch = searchTerm === '' || 
-      request.project_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.project_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       request.zac_project_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       request.sales_person?.toLowerCase().includes(searchTerm.toLowerCase())
     
@@ -187,7 +172,7 @@ function App() {
     return matchesSearch && matchesStatus
   })
 
-  const getStatusBadgeVariant = (status: string) => {
+  const getStatusBadgeVariant = (status: string | null) => {
     switch (status) {
       case '完了': return 'default'
       case '中止': return 'destructive'
@@ -440,7 +425,7 @@ function App() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleDelete(request.id)}
+                        onClick={() => handleDelete(request.id!)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
