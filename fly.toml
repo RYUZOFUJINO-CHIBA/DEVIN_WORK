@@ -1,3 +1,6 @@
+app = "app-upaysmzq"
+primary_region = "iad"
+
 [build]
 
 [env]
@@ -9,7 +12,6 @@
   auto_stop_machines = true
   auto_start_machines = true
   min_machines_running = 0
-  processes = ["app"]
 
 [[http_service.checks]]
   interval = "15s"
@@ -21,4 +23,4 @@
   tls_skip_verify = false
 
 [processes]
-  app = "poetry run fastapi run app/main.py --host 0.0.0.0 --port 8000"
+  app = "cd sales_estimation_backend && poetry run fastapi run app/main.py --host 0.0.0.0 --port 8000"
