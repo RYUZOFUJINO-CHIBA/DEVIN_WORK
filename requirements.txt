@@ -1,17 +1,14 @@
-# Sales Estimation Support Tool - Python Dependencies
-# This file contains the Python dependencies that were used in the original FastAPI backend
-# Note: The current deployment uses Supabase REST API and doesn't require a Python backend
-
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
-# sqlalchemy==2.0.23
-# psycopg2-binary==2.9.9
-# psycopg[binary]==3.1.18
-# python-multipart==0.0.6
-# python-dotenv==1.0.0
-# pydantic==2.5.0
-# alembic==1.13.0
-
-# Development dependencies
-# pytest==7.4.3
-# httpx==0.25.2
+# 売上予測支援ツール - Python依存関係
+# このファイルには、元のFastAPIバックエンドで使用されていたPython依存関係が含まれています
+# 注: 現在のデプロイメントでは Supabase REST API を使用しており、Python バックエンドは必要ありません。
+ファストAPI==0.104.1
+uvicorn[標準]==0.24.0
+sqlalchemy==2.0.23
+psycopg2-バイナリ==2.9.9
+Pythonマルチパート==0.0.6
+python-dotenv==1.0.0
+ピダンティック==2.5.0
+アレンビック==1.13.0
+# 開発依存関係
+pytest==7.4.3
+httpx==0.25.2
