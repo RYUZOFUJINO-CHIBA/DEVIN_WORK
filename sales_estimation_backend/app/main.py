@@ -23,6 +23,10 @@ app.add_middleware(
 def startup_event():
     create_tables()
 
+@app.get("/")
+def root():
+    return {"message": "Sales Estimation API is running"}
+
 @app.get("/healthz")
 async def healthz():
     return {"status": "ok"}
