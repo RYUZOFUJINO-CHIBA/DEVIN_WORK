@@ -6,14 +6,13 @@
 fastapi==0.104.1
 uvicorn==0.24.0
 sqlalchemy==2.0.23
-psycopg2-binary==2.9.9  # Rust依存なし・pipでOK
+psycopg2-binary==2.9.9  # Rust不要
 python-multipart==0.0.6
 python-dotenv==1.0.0
 pydantic==2.5.0
 alembic==1.13.0
 
 # 開発用（任意）
-pytest==7.4.3
-httpx==0.25.2
-
+# pytest==7.4.3
+# httpx==0.25.2
 
