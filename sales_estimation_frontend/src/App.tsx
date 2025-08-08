@@ -385,13 +385,18 @@ function App() {
             <TableHeader>
               <TableRow>
                 <TableHead>依頼日</TableHead>
+                <TableHead>積算希望日</TableHead>
                 <TableHead>案件名</TableHead>
                 <TableHead>ZAC案件番号</TableHead>
                 <TableHead>営業担当</TableHead>
                 <TableHead>積算担当</TableHead>
                 <TableHead>ステータス</TableHead>
-                <TableHead>積算希望日</TableHead>
+                <TableHead>積算</TableHead>
                 <TableHead>完了日</TableHead>
+                <TableHead>備考</TableHead>
+                <TableHead>積算資料</TableHead>
+                <TableHead>BOXURL</TableHead>
+                <TableHead>その他</TableHead>
                 <TableHead>操作</TableHead>
               </TableRow>
             </TableHeader>
@@ -399,6 +404,7 @@ function App() {
               {filteredRequests.map((request) => (
                 <TableRow key={request.id}>
                   <TableCell>{request.request_date}</TableCell>
+                  <TableCell>{request.desired_estimation_date}</TableCell>
                   <TableCell className="font-medium">{request.project_name}</TableCell>
                   <TableCell>{request.zac_project_number}</TableCell>
                   <TableCell>{request.sales_person}</TableCell>
@@ -408,8 +414,18 @@ function App() {
                       {request.status}
                     </Badge>
                   </TableCell>
-                  <TableCell>{request.desired_estimation_date}</TableCell>
+                  <TableCell className="max-w-32 truncate">{request.estimation}</TableCell>
                   <TableCell>{request.completion_date}</TableCell>
+                  <TableCell className="max-w-32 truncate">{request.remarks}</TableCell>
+                  <TableCell className="max-w-32 truncate">{request.estimation_materials}</TableCell>
+                  <TableCell className="max-w-32 truncate">
+                    {request.box_url && (
+                      <a href={request.box_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                        URL
+                      </a>
+                    )}
+                  </TableCell>
+                  <TableCell className="max-w-32 truncate">{request.others}</TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
                       <Button
