@@ -24,6 +24,22 @@ export interface EstimationRequest {
   updated_at?: string
 }
 
+export interface User {
+  id?: number
+  username: string
+  email: string
+  created_at?: string
+  updated_at?: string
+}
+
+export interface AppSetting {
+  id?: number
+  setting_key: string
+  setting_value: string
+  created_at?: string
+  updated_at?: string
+}
+
 export const STATUS_OPTIONS = [
   "未着手",
   "資料待ち", 
