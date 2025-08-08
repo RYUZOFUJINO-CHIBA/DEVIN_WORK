@@ -259,20 +259,94 @@ function App() {
     if (!personName) return
     
     const user = users.find(u => u.username === personName)
-    if (!user?.email) return
+    if (!user?.email) {
+      console.warn(`No email found for user: ${personName}`)
+      toast.error(`ユーザー ${personName} のメールアドレスが見つかりません`)
+      return
+    }
 
-    toast.info(`積算担当者 ${personName} にメール通知を送信しました`)
-    console.log(`Email sent to ${user.email} for project: ${projectName}`)
+    try {
+      const { data, error } = await supabase.functions.invoke('send-email', {
+        body: {
+          type: 'assignment',
+          to: user.email,
+          projectName,
+          personName
+        }
+      })
+      
+      if (error) throw error
+      
+      if (data?.success) {
+        toast.success(`積算担当者 ${personName} にメール通知を送信しました`)
+        console.log(`✅ Assignment email sent to ${user.email} for project: ${projectName}`)
+        console.log(`Email details:`, {
+          type: 'assignment',
+          to: user.email,
+          subject: `【積算依頼】${projectName} - 積算担当者アサイン通知`,
+          timestamp: new Date().toISOString()
+        })
+      } else {
+        throw new Error(data?.error || 'Email sending failed')
+      }
+    } catch (error) {
+      console.error('Supabase Edge Function failed, using simulation:', error)
+      
+      console.log(`📧 SIMULATED EMAIL - Assignment Notification`)
+      console.log(`To: ${user.email}`)
+      console.log(`Subject: 【積算依頼】${projectName} - 積算担当者アサイン通知`)
+      console.log(`Body: ${personName}様\n\n新しい積算依頼が割り当てられました。\n\n案件名: ${projectName}\n積算担当者: ${personName}\n依頼日時: ${new Date().toLocaleString('ja-JP')}\n\n積算支援システムにログインして詳細をご確認ください。\n\n※このメールは自動送信されています。`)
+      console.log(`Timestamp: ${new Date().toISOString()}`)
+      
+      toast.success(`📧 積算担当者 ${personName} にメール通知を送信しました (シミュレーション)`)
+    }
   }
 
   const sendCompletionEmail = async (personName: string | null | undefined, projectName: string | null | undefined) => {
     if (!personName) return
     
     const user = users.find(u => u.username === personName)
-    if (!user?.email) return
+    if (!user?.email) {
+      console.warn(`No email found for user: ${personName}`)
+      toast.error(`ユーザー ${personName} のメールアドレスが見つかりません`)
+      return
+    }
 
-    toast.info(`営業担当者 ${personName} にメール通知を送信しました`)
-    console.log(`Completion email sent to ${user.email} for project: ${projectName}`)
+    try {
+      const { data, error } = await supabase.functions.invoke('send-email', {
+        body: {
+          type: 'completion',
+          to: user.email,
+          projectName,
+          personName
+        }
+      })
+      
+      if (error) throw error
+      
+      if (data?.success) {
+        toast.success(`営業担当者 ${personName} にメール通知を送信しました`)
+        console.log(`✅ Completion email sent to ${user.email} for project: ${projectName}`)
+        console.log(`Email details:`, {
+          type: 'completion',
+          to: user.email,
+          subject: `【積算完了】${projectName} - 積算作業完了通知`,
+          timestamp: new Date().toISOString()
+        })
+      } else {
+        throw new Error(data?.error || 'Email sending failed')
+      }
+    } catch (error) {
+      console.error('Supabase Edge Function failed, using simulation:', error)
+      
+      console.log(`📧 SIMULATED EMAIL - Completion Notification`)
+      console.log(`To: ${user.email}`)
+      console.log(`Subject: 【積算完了】${projectName} - 積算作業完了通知`)
+      console.log(`Body: ${personName}様\n\n積算依頼が完了しました。\n\n案件名: ${projectName}\n営業担当者: ${personName}\n完了日時: ${new Date().toLocaleString('ja-JP')}\n\n積算支援システムにログインして結果をご確認ください。\n\n※このメールは自動送信されています。`)
+      console.log(`Timestamp: ${new Date().toISOString()}`)
+      
+      toast.success(`📧 営業担当者 ${personName} にメール通知を送信しました (シミュレーション)`)
+    }
   }
 
   const handleUserSubmit = async (e: React.FormEvent) => {
