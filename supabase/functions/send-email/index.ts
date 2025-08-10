@@ -5,6 +5,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const TEAMS_WEBHOOK_URL = Deno.env.get('TEAMS_WEBHOOK_URL')
+const SYSTEM_NAME = '営業積算支援システム'
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -16,68 +19,135 @@ serve(async (req) => {
     if (!type || !to || !projectName || !personName) {
       throw new Error('Missing required parameters: type, to, projectName, personName')
     }
+
+    if (!TEAMS_WEBHOOK_URL) {
+      throw new Error('TEAMS_WEBHOOK_URL environment variable is required')
+    }
     
-    console.log(`Processing ${type} email request:`, {
+    console.log(`Processing ${type} Teams notification request:`, {
       to,
       projectName,
       personName,
       timestamp: new Date().toISOString()
     })
     
-    const templates = {
-      assignment: {
-        subject: `【積算依頼】${projectName} - 積算担当者アサイン通知`,
-        body: `${personName}様
-
-新しい積算依頼が割り当てられました。
-
-案件名: ${projectName}
-積算担当者: ${personName}
-依頼日時: ${new Date().toLocaleString('ja-JP')}
-
-積算支援システムにログインして詳細をご確認ください。
-
-※このメールは自動送信されています。`
-      },
-      completion: {
-        subject: `【積算完了】${projectName} - 積算作業完了通知`, 
-        body: `${personName}様
-
-積算依頼が完了しました。
-
-案件名: ${projectName}
-営業担当者: ${personName}
-完了日時: ${new Date().toLocaleString('ja-JP')}
-
-積算支援システムにログインして結果をご確認ください。
-
-※このメールは自動送信されています。`
+    const createTeamsMessage = (type: string, projectName: string, personName: string, to: string) => {
+      const currentTime = new Date().toLocaleString('ja-JP')
+      
+      if (type === 'assignment') {
+        return {
+          "@type": "MessageCard",
+          "@context": "http://schema.org/extensions",
+          "themeColor": "0078D4",
+          "summary": `積算依頼アサイン: ${projectName}`,
+          "sections": [{
+            "activityTitle": "🎯 新しい積算依頼が割り当てられました",
+            "activitySubtitle": `${SYSTEM_NAME}からの自動通知`,
+            "facts": [
+              {
+                "name": "案件名",
+                "value": projectName
+              },
+              {
+                "name": "積算担当者",
+                "value": personName
+              },
+              {
+                "name": "担当者メール",
+                "value": to
+              },
+              {
+                "name": "依頼日時",
+                "value": currentTime
+              }
+            ],
+            "markdown": true
+          }],
+          "potentialAction": [{
+            "@type": "OpenUri",
+            "name": "システムにログイン",
+            "targets": [{
+              "os": "default",
+              "uri": "https://ltkgmmbapafctihusddh.supabase.co"
+            }]
+          }]
+        }
+      } else if (type === 'completion') {
+        return {
+          "@type": "MessageCard",
+          "@context": "http://schema.org/extensions",
+          "themeColor": "00FF00",
+          "summary": `積算完了: ${projectName}`,
+          "sections": [{
+            "activityTitle": "✅ 積算依頼が完了しました",
+            "activitySubtitle": `${SYSTEM_NAME}からの自動通知`,
+            "facts": [
+              {
+                "name": "案件名",
+                "value": projectName
+              },
+              {
+                "name": "営業担当者",
+                "value": personName
+              },
+              {
+                "name": "担当者メール",
+                "value": to
+              },
+              {
+                "name": "完了日時",
+                "value": currentTime
+              }
+            ],
+            "markdown": true
+          }],
+          "potentialAction": [{
+            "@type": "OpenUri",
+            "name": "結果を確認",
+            "targets": [{
+              "os": "default",
+              "uri": "https://ltkgmmbapafctihusddh.supabase.co"
+            }]
+          }]
+        }
       }
+      
+      throw new Error(`Unknown message type: ${type}`)
     }
     
-    const template = templates[type as keyof typeof templates]
-    if (!template) {
-      throw new Error(`Unknown email type: ${type}. Supported types: assignment, completion`)
-    }
+    const teamsMessage = createTeamsMessage(type, projectName, personName, to)
     
-    console.log('Email content prepared:', {
+    console.log('Teams message prepared:', {
       to,
-      subject: template.subject,
-      bodyLength: template.body.length,
-      type
+      type,
+      projectName,
+      personName
     })
     
-    await new Promise(resolve => setTimeout(resolve, 500))
+    // Send message to Microsoft Teams via Webhook
+    const teamsResponse = await fetch(TEAMS_WEBHOOK_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(teamsMessage)
+    })
+
+    if (!teamsResponse.ok) {
+      const errorText = await teamsResponse.text()
+      throw new Error(`Teams Webhook error: ${teamsResponse.status} - ${errorText}`)
+    }
     
-    console.log(`✅ Email successfully sent to ${to}`)
+    console.log(`✅ Teams message successfully sent for ${type}: ${projectName}`)
     
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'Email sent successfully',
+        message: 'Teams notification sent successfully',
         details: {
           to,
-          subject: template.subject,
+          projectName,
+          personName,
           type,
           sentAt: new Date().toISOString()
         }
@@ -88,7 +158,7 @@ serve(async (req) => {
       },
     )
   } catch (error) {
-    console.error('❌ Error sending email:', error)
+    console.error('❌ Error sending Teams notification:', error)
     return new Response(
       JSON.stringify({ 
         success: false, 

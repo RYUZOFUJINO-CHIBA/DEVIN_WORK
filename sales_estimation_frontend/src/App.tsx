@@ -278,27 +278,29 @@ function App() {
       if (error) throw error
       
       if (data?.success) {
-        toast.success(`積算担当者 ${personName} にメール通知を送信しました`)
-        console.log(`✅ Assignment email sent to ${user.email} for project: ${projectName}`)
-        console.log(`Email details:`, {
+        toast.success(`積算担当者 ${personName} にTeams通知を送信しました`)
+        console.log(`✅ Assignment Teams notification sent for ${personName} (${user.email}) for project: ${projectName}`)
+        console.log(`Teams notification details:`, {
           type: 'assignment',
           to: user.email,
-          subject: `【積算依頼】${projectName} - 積算担当者アサイン通知`,
+          projectName,
+          personName,
           timestamp: new Date().toISOString()
         })
       } else {
-        throw new Error(data?.error || 'Email sending failed')
+        throw new Error(data?.error || 'Teams notification sending failed')
       }
     } catch (error) {
       console.error('Supabase Edge Function failed, using simulation:', error)
       
-      console.log(`📧 SIMULATED EMAIL - Assignment Notification`)
+      console.log(`💬 SIMULATED TEAMS - Assignment Notification`)
       console.log(`To: ${user.email}`)
-      console.log(`Subject: 【積算依頼】${projectName} - 積算担当者アサイン通知`)
-      console.log(`Body: ${personName}様\n\n新しい積算依頼が割り当てられました。\n\n案件名: ${projectName}\n積算担当者: ${personName}\n依頼日時: ${new Date().toLocaleString('ja-JP')}\n\n積算支援システムにログインして詳細をご確認ください。\n\n※このメールは自動送信されています。`)
+      console.log(`Project: ${projectName}`)
+      console.log(`Person: ${personName}`)
+      console.log(`Message: 🎯 新しい積算依頼が割り当てられました\n案件名: ${projectName}\n積算担当者: ${personName}\n依頼日時: ${new Date().toLocaleString('ja-JP')}`)
       console.log(`Timestamp: ${new Date().toISOString()}`)
       
-      toast.success(`📧 積算担当者 ${personName} にメール通知を送信しました (シミュレーション)`)
+      toast.success(`💬 積算担当者 ${personName} にTeams通知を送信しました (シミュレーション)`)
     }
   }
 
@@ -325,27 +327,29 @@ function App() {
       if (error) throw error
       
       if (data?.success) {
-        toast.success(`営業担当者 ${personName} にメール通知を送信しました`)
-        console.log(`✅ Completion email sent to ${user.email} for project: ${projectName}`)
-        console.log(`Email details:`, {
+        toast.success(`営業担当者 ${personName} にTeams通知を送信しました`)
+        console.log(`✅ Completion Teams notification sent for ${personName} (${user.email}) for project: ${projectName}`)
+        console.log(`Teams notification details:`, {
           type: 'completion',
           to: user.email,
-          subject: `【積算完了】${projectName} - 積算作業完了通知`,
+          projectName,
+          personName,
           timestamp: new Date().toISOString()
         })
       } else {
-        throw new Error(data?.error || 'Email sending failed')
+        throw new Error(data?.error || 'Teams notification sending failed')
       }
     } catch (error) {
       console.error('Supabase Edge Function failed, using simulation:', error)
       
-      console.log(`📧 SIMULATED EMAIL - Completion Notification`)
+      console.log(`💬 SIMULATED TEAMS - Completion Notification`)
       console.log(`To: ${user.email}`)
-      console.log(`Subject: 【積算完了】${projectName} - 積算作業完了通知`)
-      console.log(`Body: ${personName}様\n\n積算依頼が完了しました。\n\n案件名: ${projectName}\n営業担当者: ${personName}\n完了日時: ${new Date().toLocaleString('ja-JP')}\n\n積算支援システムにログインして結果をご確認ください。\n\n※このメールは自動送信されています。`)
+      console.log(`Project: ${projectName}`)
+      console.log(`Person: ${personName}`)
+      console.log(`Message: ✅ 積算依頼が完了しました\n案件名: ${projectName}\n営業担当者: ${personName}\n完了日時: ${new Date().toLocaleString('ja-JP')}`)
       console.log(`Timestamp: ${new Date().toISOString()}`)
       
-      toast.success(`📧 営業担当者 ${personName} にメール通知を送信しました (シミュレーション)`)
+      toast.success(`💬 営業担当者 ${personName} にTeams通知を送信しました (シミュレーション)`)
     }
   }
 
