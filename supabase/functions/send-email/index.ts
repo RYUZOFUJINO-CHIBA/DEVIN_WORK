@@ -5,7 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const TEAMS_WEBHOOK_URL = Deno.env.get('TEAMS_WEBHOOK_URL')
+const POWER_AUTOMATE_URL = Deno.env.get('POWER_AUTOMATE_URL')
 const SYSTEM_NAME = '営業積算支援システム'
 
 serve(async (req) => {
@@ -20,130 +20,80 @@ serve(async (req) => {
       throw new Error('Missing required parameters: type, to, projectName, personName')
     }
 
-    if (!TEAMS_WEBHOOK_URL) {
-      throw new Error('TEAMS_WEBHOOK_URL environment variable is required')
+    if (!POWER_AUTOMATE_URL) {
+      throw new Error('POWER_AUTOMATE_URL environment variable is required')
     }
     
-    console.log(`Processing ${type} Teams notification request:`, {
+    console.log(`Processing ${type} Power Automate notification request:`, {
       to,
       projectName,
       personName,
       timestamp: new Date().toISOString()
     })
     
-    const createTeamsMessage = (type: string, projectName: string, personName: string, to: string) => {
+    const createPowerAutomateMessage = (type: string, projectName: string, personName: string, to: string) => {
       const currentTime = new Date().toLocaleString('ja-JP')
       
       if (type === 'assignment') {
         return {
-          "@type": "MessageCard",
-          "@context": "http://schema.org/extensions",
-          "themeColor": "0078D4",
-          "summary": `積算依頼アサイン: ${projectName}`,
-          "sections": [{
-            "activityTitle": "🎯 新しい積算依頼が割り当てられました",
-            "activitySubtitle": `${SYSTEM_NAME}からの自動通知`,
-            "facts": [
-              {
-                "name": "案件名",
-                "value": projectName
-              },
-              {
-                "name": "積算担当者",
-                "value": personName
-              },
-              {
-                "name": "担当者メール",
-                "value": to
-              },
-              {
-                "name": "依頼日時",
-                "value": currentTime
-              }
-            ],
-            "markdown": true
-          }],
-          "potentialAction": [{
-            "@type": "OpenUri",
-            "name": "システムにログイン",
-            "targets": [{
-              "os": "default",
-              "uri": "https://ltkgmmbapafctihusddh.supabase.co"
-            }]
-          }]
+          notificationType: 'assignment',
+          title: '🎯 新しい積算依頼が割り当てられました',
+          subtitle: `${SYSTEM_NAME}からの自動通知`,
+          projectName: projectName,
+          personName: personName,
+          email: to,
+          datetime: currentTime,
+          color: 'good', // Power Automate用カラー: good (緑), attention (黄), warning (赤)
+          systemUrl: 'https://ltkgmmbapafctihusddh.supabase.co',
+          actionText: 'システムにログイン'
         }
       } else if (type === 'completion') {
         return {
-          "@type": "MessageCard",
-          "@context": "http://schema.org/extensions",
-          "themeColor": "00FF00",
-          "summary": `積算完了: ${projectName}`,
-          "sections": [{
-            "activityTitle": "✅ 積算依頼が完了しました",
-            "activitySubtitle": `${SYSTEM_NAME}からの自動通知`,
-            "facts": [
-              {
-                "name": "案件名",
-                "value": projectName
-              },
-              {
-                "name": "営業担当者",
-                "value": personName
-              },
-              {
-                "name": "担当者メール",
-                "value": to
-              },
-              {
-                "name": "完了日時",
-                "value": currentTime
-              }
-            ],
-            "markdown": true
-          }],
-          "potentialAction": [{
-            "@type": "OpenUri",
-            "name": "結果を確認",
-            "targets": [{
-              "os": "default",
-              "uri": "https://ltkgmmbapafctihusddh.supabase.co"
-            }]
-          }]
+          notificationType: 'completion',
+          title: '✅ 積算依頼が完了しました',
+          subtitle: `${SYSTEM_NAME}からの自動通知`,
+          projectName: projectName,
+          personName: personName,
+          email: to,
+          datetime: currentTime,
+          color: 'good',
+          systemUrl: 'https://ltkgmmbapafctihusddh.supabase.co',
+          actionText: '結果を確認'
         }
       }
       
       throw new Error(`Unknown message type: ${type}`)
     }
     
-    const teamsMessage = createTeamsMessage(type, projectName, personName, to)
+    const powerAutomateMessage = createPowerAutomateMessage(type, projectName, personName, to)
     
-    console.log('Teams message prepared:', {
+    console.log('Power Automate message prepared:', {
       to,
       type,
       projectName,
       personName
     })
     
-    // Send message to Microsoft Teams via Webhook
-    const teamsResponse = await fetch(TEAMS_WEBHOOK_URL, {
+    // Send message to Microsoft Teams via Power Automate
+    const powerAutomateResponse = await fetch(POWER_AUTOMATE_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(teamsMessage)
+      body: JSON.stringify(powerAutomateMessage)
     })
 
-    if (!teamsResponse.ok) {
-      const errorText = await teamsResponse.text()
-      throw new Error(`Teams Webhook error: ${teamsResponse.status} - ${errorText}`)
+    if (!powerAutomateResponse.ok) {
+      const errorText = await powerAutomateResponse.text()
+      throw new Error(`Power Automate error: ${powerAutomateResponse.status} - ${errorText}`)
     }
     
-    console.log(`✅ Teams message successfully sent for ${type}: ${projectName}`)
+    console.log(`✅ Power Automate message successfully sent for ${type}: ${projectName}`)
     
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'Teams notification sent successfully',
+        message: 'Power Automate notification sent successfully',
         details: {
           to,
           projectName,
@@ -158,7 +108,7 @@ serve(async (req) => {
       },
     )
   } catch (error) {
-    console.error('❌ Error sending Teams notification:', error)
+    console.error('❌ Error sending Power Automate notification:', error)
     return new Response(
       JSON.stringify({ 
         success: false, 
