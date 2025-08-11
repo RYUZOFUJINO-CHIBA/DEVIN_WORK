@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { supabase, EstimationRequest, STATUS_OPTIONS, User } from './lib/supabase'
 import { toast } from "sonner"
 
@@ -502,7 +503,8 @@ function App() {
   }
 
   return (
-    <div className="container mx-auto p-6">
+    <TooltipProvider>
+      <div className="container mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center space-x-4">
           <img src="/logo.svg" alt="Logo" className="h-12 w-auto" />
@@ -913,8 +915,34 @@ function App() {
                   </TableCell>
                   <TableCell className="max-w-32 truncate">{request.estimation}</TableCell>
                   <TableCell>{request.completion_date}</TableCell>
-                  <TableCell className="max-w-32 truncate">{request.remarks}</TableCell>
-                  <TableCell className="max-w-32 truncate">{request.estimation_materials}</TableCell>
+                  <TableCell className="max-w-32">
+                    {request.remarks ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="truncate cursor-help">{request.remarks}</div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="max-w-md whitespace-pre-wrap">{request.remarks}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <div className="truncate">-</div>
+                    )}
+                  </TableCell>
+                  <TableCell className="max-w-32">
+                    {request.estimation_materials ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="truncate cursor-help">{request.estimation_materials}</div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="max-w-md whitespace-pre-wrap">{request.estimation_materials}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <div className="truncate">-</div>
+                    )}
+                  </TableCell>
                   <TableCell className="max-w-32 truncate">
                     {request.box_url && (
                       <a href={request.box_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
@@ -952,7 +980,8 @@ function App() {
           )}
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </TooltipProvider>
   )
 }
 
