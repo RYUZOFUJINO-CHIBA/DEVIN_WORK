@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Edit, Trash2, Search, Users, Settings, LogOut, Pencil, AtSign } from 'lucide-react'
+import { Plus, Edit, Trash2, Search, Users, Settings, LogOut, Pencil } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -43,8 +43,7 @@ function App() {
     remarks: '',
     estimation_materials: '',
     box_url: '',
-    others: '',
-    mention_users: [] as string[]
+    others: ''
   })
 
   useEffect(() => {
@@ -129,21 +128,60 @@ function App() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // 新規登録時の必須項目チェック
+    if (!editingRequest) {
+      if (!formData.desired_estimation_date) {
+        toast.error('積算希望日は必須項目です')
+        return
+      }
+      if (!formData.zac_project_number) {
+        toast.error('ZAC案件番号は必須項目です')
+        return
+      }
+      if (!formData.sales_person) {
+        toast.error('営業担当は必須項目です')
+        return
+      }
+    }
+    
     try {
-      const submitData = {
-        request_date: formData.request_date || null,
-        desired_estimation_date: formData.desired_estimation_date || null,
-        project_name: formData.project_name || null,
-        zac_project_number: formData.zac_project_number || null,
-        sales_person: formData.sales_person || null,
-        estimation_person: formData.estimation_person || null,
-        status: formData.status || null,
-        estimation: formData.estimation || null,
-        completion_date: formData.completion_date || null,
-        remarks: formData.remarks || null,
-        estimation_materials: formData.estimation_materials || null,
-        box_url: formData.box_url || null,
-        others: formData.others || null
+      let submitData
+      
+      if (editingRequest) {
+        // 編集時は全項目を送信
+        submitData = {
+          request_date: formData.request_date || null,
+          desired_estimation_date: formData.desired_estimation_date || null,
+          project_name: formData.project_name || null,
+          zac_project_number: formData.zac_project_number || null,
+          sales_person: formData.sales_person || null,
+          estimation_person: formData.estimation_person || null,
+          status: formData.status || null,
+          estimation: formData.estimation || null,
+          completion_date: formData.completion_date || null,
+          remarks: formData.remarks || null,
+          estimation_materials: formData.estimation_materials || null,
+          box_url: formData.box_url || null,
+          others: formData.others || null
+        }
+      } else {
+        // 新規登録時は指定項目のみを送信、他はNULL、statusは「未着手」
+        submitData = {
+          request_date: formData.request_date || null,
+          desired_estimation_date: formData.desired_estimation_date || null,
+          project_name: formData.project_name || null,
+          zac_project_number: formData.zac_project_number || null,
+          sales_person: formData.sales_person || null,
+          estimation_person: null,
+          status: '未着手',
+          estimation: null,
+          completion_date: null,
+          remarks: formData.remarks || null,
+          estimation_materials: formData.estimation_materials || null,
+          box_url: formData.box_url || null,
+          others: null
+        }
       }
 
       const oldStatus = editingRequest?.status
@@ -233,8 +271,7 @@ function App() {
       remarks: request.remarks || '',
       estimation_materials: request.estimation_materials || '',
       box_url: request.box_url || '',
-      others: request.others || '',
-      mention_users: []
+      others: request.others || ''
     })
     setIsDialogOpen(true)
   }
@@ -254,8 +291,7 @@ function App() {
       remarks: '',
       estimation_materials: '',
       box_url: '',
-      others: '',
-      mention_users: []
+      others: ''
     })
   }
 
@@ -270,18 +306,12 @@ function App() {
     }
 
     try {
-      const mentionUserEmails = formData.mention_users
-        .map(username => users.find(u => u.username === username)?.email)
-        .filter(Boolean)
-      
       const { data, error } = await supabase.functions.invoke('send-email', {
         body: {
           type: 'assignment',
           to: user.email,
           projectName,
-          personName,
-          mentionUsers: mentionUserEmails,
-          mentionUserNames: formData.mention_users
+          personName
         }
       })
       
@@ -325,18 +355,12 @@ function App() {
     }
 
     try {
-      const mentionUserEmails = formData.mention_users
-        .map(username => users.find(u => u.username === username)?.email)
-        .filter(Boolean)
-      
       const { data, error } = await supabase.functions.invoke('send-email', {
         body: {
           type: 'completion',
           to: user.email,
           projectName,
-          personName,
-          mentionUsers: mentionUserEmails,
-          mentionUserNames: formData.mention_users
+          personName
         }
       })
       
@@ -645,174 +669,229 @@ function App() {
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="request_date">依頼日 *</Label>
-                  <Input
-                    id="request_date"
-                    type="date"
-                    value={formData.request_date}
-                    onChange={(e) => setFormData({...formData, request_date: e.target.value})}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="desired_estimation_date">積算希望日</Label>
-                  <Input
-                    id="desired_estimation_date"
-                    type="date"
-                    value={formData.desired_estimation_date}
-                    onChange={(e) => setFormData({...formData, desired_estimation_date: e.target.value})}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="project_name">案件名 *</Label>
-                <Input
-                  id="project_name"
-                  value={formData.project_name}
-                  onChange={(e) => setFormData({...formData, project_name: e.target.value})}
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="zac_project_number">ZAC案件番号</Label>
-                  <Input
-                    id="zac_project_number"
-                    value={formData.zac_project_number}
-                    onChange={(e) => setFormData({...formData, zac_project_number: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="status">ステータス *</Label>
-                  <Select value={formData.status} onValueChange={(value) => setFormData({...formData, status: value})}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {STATUS_OPTIONS.map((status) => (
-                        <SelectItem key={status} value={status}>
-                          {status}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="sales_person">営業担当</Label>
-                  <Select value={formData.sales_person} onValueChange={(value) => setFormData({...formData, sales_person: value})}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="営業担当を選択" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {users.map((user) => (
-                        <SelectItem key={user.id} value={user.username}>
-                          {user.username}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="estimation_person">積算担当</Label>
-                  <Select value={formData.estimation_person} onValueChange={(value) => setFormData({...formData, estimation_person: value})}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="積算担当を選択" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {users.map((user) => (
-                        <SelectItem key={user.id} value={user.username}>
-                          {user.username}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="box_url">BOXURL</Label>
-                <Input
-                  id="box_url"
-                  type="url"
-                  value={formData.box_url}
-                  onChange={(e) => setFormData({...formData, box_url: e.target.value})}
-                  placeholder="https://..."
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="estimation_materials">積算資料</Label>
-                <Textarea
-                  id="estimation_materials"
-                  value={formData.estimation_materials}
-                  onChange={(e) => setFormData({...formData, estimation_materials: e.target.value})}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="remarks">備考</Label>
-                <Textarea
-                  id="remarks"
-                  value={formData.remarks}
-                  onChange={(e) => setFormData({...formData, remarks: e.target.value})}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="others">その他</Label>
-                <Textarea
-                  id="others"
-                  value={formData.others}
-                  onChange={(e) => setFormData({...formData, others: e.target.value})}
-                />
-              </div>
-
-              <div>
-                <Label className="flex items-center space-x-2">
-                  <AtSign className="h-4 w-4" />
-                  <span>メンション対象ユーザー</span>
-                </Label>
-                <div className="grid grid-cols-2 gap-2 mt-2 max-h-32 overflow-y-auto border rounded p-2">
-                  {users.map((user) => (
-                    <label key={user.id} className="flex items-center space-x-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={formData.mention_users.includes(user.username)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setFormData({
-                              ...formData,
-                              mention_users: [...formData.mention_users, user.username]
-                            })
-                          } else {
-                            setFormData({
-                              ...formData,
-                              mention_users: formData.mention_users.filter(u => u !== user.username)
-                            })
-                          }
-                        }}
-                        className="rounded"
-                      />
-                      <span className="text-sm">{user.username}</span>
-                    </label>
-                  ))}
-                </div>
-                {formData.mention_users.length > 0 && (
-                  <div className="mt-2 text-sm text-gray-600">
-                    選択中: {formData.mention_users.join(', ')}
-                  </div>
-                )}
-              </div>
-
-              {editingRequest && (
+              {!editingRequest ? (
+                // 新規登録時の項目
                 <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="request_date">依頼日 *</Label>
+                      <Input
+                        id="request_date"
+                        type="date"
+                        value={formData.request_date}
+                        onChange={(e) => setFormData({...formData, request_date: e.target.value})}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="desired_estimation_date">積算希望日 *</Label>
+                      <Input
+                        id="desired_estimation_date"
+                        type="date"
+                        value={formData.desired_estimation_date}
+                        onChange={(e) => setFormData({...formData, desired_estimation_date: e.target.value})}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="project_name">案件名 *</Label>
+                    <Input
+                      id="project_name"
+                      value={formData.project_name}
+                      onChange={(e) => setFormData({...formData, project_name: e.target.value})}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="zac_project_number">ZAC案件番号 *</Label>
+                    <Input
+                      id="zac_project_number"
+                      value={formData.zac_project_number}
+                      onChange={(e) => setFormData({...formData, zac_project_number: e.target.value})}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="sales_person">営業担当 *</Label>
+                    <Select value={formData.sales_person} onValueChange={(value) => setFormData({...formData, sales_person: value})} required>
+                      <SelectTrigger>
+                        <SelectValue placeholder="営業担当を選択" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {users.map((user) => (
+                          <SelectItem key={user.id} value={user.username}>
+                            {user.username}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="box_url">BOXURL</Label>
+                    <Input
+                      id="box_url"
+                      type="url"
+                      value={formData.box_url}
+                      onChange={(e) => setFormData({...formData, box_url: e.target.value})}
+                      placeholder="https://..."
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="estimation_materials">積算資料</Label>
+                    <Textarea
+                      id="estimation_materials"
+                      value={formData.estimation_materials}
+                      onChange={(e) => setFormData({...formData, estimation_materials: e.target.value})}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="remarks">備考</Label>
+                    <Textarea
+                      id="remarks"
+                      value={formData.remarks}
+                      onChange={(e) => setFormData({...formData, remarks: e.target.value})}
+                    />
+                  </div>
+                </>
+              ) : (
+                // 編集時の項目（従来通り全項目表示）
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="request_date">依頼日 *</Label>
+                      <Input
+                        id="request_date"
+                        type="date"
+                        value={formData.request_date}
+                        onChange={(e) => setFormData({...formData, request_date: e.target.value})}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="desired_estimation_date">積算希望日</Label>
+                      <Input
+                        id="desired_estimation_date"
+                        type="date"
+                        value={formData.desired_estimation_date}
+                        onChange={(e) => setFormData({...formData, desired_estimation_date: e.target.value})}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="project_name">案件名 *</Label>
+                    <Input
+                      id="project_name"
+                      value={formData.project_name}
+                      onChange={(e) => setFormData({...formData, project_name: e.target.value})}
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="zac_project_number">ZAC案件番号</Label>
+                      <Input
+                        id="zac_project_number"
+                        value={formData.zac_project_number}
+                        onChange={(e) => setFormData({...formData, zac_project_number: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="status">ステータス *</Label>
+                      <Select value={formData.status} onValueChange={(value) => setFormData({...formData, status: value})}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {STATUS_OPTIONS.map((status) => (
+                            <SelectItem key={status} value={status}>
+                              {status}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="sales_person">営業担当</Label>
+                      <Select value={formData.sales_person} onValueChange={(value) => setFormData({...formData, sales_person: value})}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="営業担当を選択" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {users.map((user) => (
+                            <SelectItem key={user.id} value={user.username}>
+                              {user.username}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="estimation_person">積算担当</Label>
+                      <Select value={formData.estimation_person} onValueChange={(value) => setFormData({...formData, estimation_person: value})}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="積算担当を選択" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {users.map((user) => (
+                            <SelectItem key={user.id} value={user.username}>
+                              {user.username}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="box_url">BOXURL</Label>
+                    <Input
+                      id="box_url"
+                      type="url"
+                      value={formData.box_url}
+                      onChange={(e) => setFormData({...formData, box_url: e.target.value})}
+                      placeholder="https://..."
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="estimation_materials">積算資料</Label>
+                    <Textarea
+                      id="estimation_materials"
+                      value={formData.estimation_materials}
+                      onChange={(e) => setFormData({...formData, estimation_materials: e.target.value})}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="remarks">備考</Label>
+                    <Textarea
+                      id="remarks"
+                      value={formData.remarks}
+                      onChange={(e) => setFormData({...formData, remarks: e.target.value})}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="others">その他</Label>
+                    <Textarea
+                      id="others"
+                      value={formData.others}
+                      onChange={(e) => setFormData({...formData, others: e.target.value})}
+                    />
+                  </div>
+
                   <div>
                     <Label htmlFor="estimation">積算</Label>
                     <Textarea
@@ -821,6 +900,7 @@ function App() {
                       onChange={(e) => setFormData({...formData, estimation: e.target.value})}
                     />
                   </div>
+
                   <div>
                     <Label htmlFor="completion_date">完了日</Label>
                     <Input
