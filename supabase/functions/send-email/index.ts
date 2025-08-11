@@ -36,7 +36,22 @@ serve(async (req) => {
     const createPowerAutomateMessage = (type: string, projectName: string, personName: string, to: string, mentionUsers: string[], mentionUserNames: string[]) => {
       const currentTime = new Date().toLocaleString('ja-JP')
       
-      if (type === 'assignment') {
+      if (type === 'registration') {
+        return {
+          notificationType: 'registration',
+          title: '📝 新しい積算依頼が登録されました（チャンネル全体通知）',
+          subtitle: `${SYSTEM_NAME}からの自動通知`,
+          projectName: projectName,
+          personName: personName,
+          email: to,
+          datetime: currentTime,
+          color: 'attention', // Power Automate用カラー: good (緑), attention (黄), warning (赤)
+          systemUrl: 'https://ltkgmmbapafctihusddh.supabase.co',
+          actionText: 'システムで確認',
+          mentionUsers: mentionUsers,
+          mentionUserNames: mentionUserNames
+        }
+      } else if (type === 'assignment') {
         return {
           notificationType: 'assignment',
           title: '🎯 新しい積算依頼が割り当てられました（チャンネル全体通知）',

@@ -218,8 +218,9 @@ function App() {
         }
         toast.success('積算依頼を登録しました')
 
-        if (formData.estimation_person) {
-          await sendAssignmentEmail(formData.estimation_person, formData.project_name)
+        // 新規登録時は営業担当者にTeams通知を送信
+        if (formData.sales_person) {
+          await sendNewRegistrationEmail(formData.sales_person, formData.project_name)
         }
       }
 
@@ -293,6 +294,55 @@ function App() {
       box_url: '',
       others: ''
     })
+  }
+
+  const sendNewRegistrationEmail = async (personName: string | null | undefined, projectName: string | null | undefined) => {
+    if (!personName) return
+    
+    const user = users.find(u => u.username === personName)
+    if (!user?.email) {
+      console.warn(`No email found for user: ${personName}`)
+      toast.error(`ユーザー ${personName} のメールアドレスが見つかりません`)
+      return
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke('send-email', {
+        body: {
+          type: 'registration',
+          to: user.email,
+          projectName,
+          personName
+        }
+      })
+      
+      if (error) throw error
+      
+      if (data?.success) {
+        toast.success(`チャンネル全体にTeams通知を送信しました（新規登録: ${personName}）`)
+        console.log(`✅ New registration Teams notification sent for ${personName} (${user.email}) for project: ${projectName}`)
+        console.log(`Teams notification details:`, {
+          type: 'registration',
+          to: user.email,
+          projectName,
+          personName,
+          timestamp: new Date().toISOString()
+        })
+      } else {
+        throw new Error(data?.error || 'Teams notification sending failed')
+      }
+    } catch (error) {
+      console.error('Supabase Edge Function failed, using simulation:', error)
+      
+      console.log(`💬 SIMULATED TEAMS - New Registration Notification`)
+      console.log(`To: ${user.email}`)
+      console.log(`Project: ${projectName}`)
+      console.log(`Person: ${personName}`)
+      console.log(`Message: 📝 新しい積算依頼が登録されました\n案件名: ${projectName}\n営業担当者: ${personName}\n登録日時: ${new Date().toLocaleString('ja-JP')}`)
+      console.log(`Timestamp: ${new Date().toISOString()}`)
+      
+      toast.success(`💬 営業担当者 ${personName} にTeams通知を送信しました (シミュレーション)`)
+    }
   }
 
   const sendAssignmentEmail = async (personName: string | null | undefined, projectName: string | null | undefined) => {
