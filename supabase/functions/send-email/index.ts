@@ -14,7 +14,7 @@ serve(async (req) => {
   }
 
   try {
-    const { type, to, projectName, personName } = await req.json()
+    const { type, to, projectName, personName, mentionUsers = [], mentionUserNames = [] } = await req.json()
     
     if (!type || !to || !projectName || !personName) {
       throw new Error('Missing required parameters: type, to, projectName, personName')
@@ -28,16 +28,18 @@ serve(async (req) => {
       to,
       projectName,
       personName,
+      mentionUsers,
+      mentionUserNames,
       timestamp: new Date().toISOString()
     })
     
-    const createPowerAutomateMessage = (type: string, projectName: string, personName: string, to: string) => {
+    const createPowerAutomateMessage = (type: string, projectName: string, personName: string, to: string, mentionUsers: string[], mentionUserNames: string[]) => {
       const currentTime = new Date().toLocaleString('ja-JP')
       
       if (type === 'assignment') {
         return {
           notificationType: 'assignment',
-          title: '🎯 新しい積算依頼が割り当てられました',
+          title: '🎯 新しい積算依頼が割り当てられました（チャンネル全体通知）',
           subtitle: `${SYSTEM_NAME}からの自動通知`,
           projectName: projectName,
           personName: personName,
@@ -45,12 +47,14 @@ serve(async (req) => {
           datetime: currentTime,
           color: 'good', // Power Automate用カラー: good (緑), attention (黄), warning (赤)
           systemUrl: 'https://ltkgmmbapafctihusddh.supabase.co',
-          actionText: 'システムにログイン'
+          actionText: 'システムにログイン',
+          mentionUsers: mentionUsers,
+          mentionUserNames: mentionUserNames
         }
       } else if (type === 'completion') {
         return {
           notificationType: 'completion',
-          title: '✅ 積算依頼が完了しました',
+          title: '✅ 積算依頼が完了しました（チャンネル全体通知）',
           subtitle: `${SYSTEM_NAME}からの自動通知`,
           projectName: projectName,
           personName: personName,
@@ -58,20 +62,24 @@ serve(async (req) => {
           datetime: currentTime,
           color: 'good',
           systemUrl: 'https://ltkgmmbapafctihusddh.supabase.co',
-          actionText: '結果を確認'
+          actionText: '結果を確認',
+          mentionUsers: mentionUsers,
+          mentionUserNames: mentionUserNames
         }
       }
       
       throw new Error(`Unknown message type: ${type}`)
     }
     
-    const powerAutomateMessage = createPowerAutomateMessage(type, projectName, personName, to)
+    const powerAutomateMessage = createPowerAutomateMessage(type, projectName, personName, to, mentionUsers, mentionUserNames)
     
     console.log('Power Automate message prepared:', {
       to,
       type,
       projectName,
-      personName
+      personName,
+      mentionUsers,
+      mentionUserNames
     })
     
     // Send message to Microsoft Teams via Power Automate

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Edit, Trash2, Search, Users, Settings, LogOut, Pencil } from 'lucide-react'
+import { Plus, Edit, Trash2, Search, Users, Settings, LogOut, Pencil, AtSign } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -42,7 +42,8 @@ function App() {
     remarks: '',
     estimation_materials: '',
     box_url: '',
-    others: ''
+    others: '',
+    mention_users: [] as string[]
   })
 
   useEffect(() => {
@@ -231,7 +232,8 @@ function App() {
       remarks: request.remarks || '',
       estimation_materials: request.estimation_materials || '',
       box_url: request.box_url || '',
-      others: request.others || ''
+      others: request.others || '',
+      mention_users: []
     })
     setIsDialogOpen(true)
   }
@@ -251,7 +253,8 @@ function App() {
       remarks: '',
       estimation_materials: '',
       box_url: '',
-      others: ''
+      others: '',
+      mention_users: []
     })
   }
 
@@ -266,19 +269,25 @@ function App() {
     }
 
     try {
+      const mentionUserEmails = formData.mention_users
+        .map(username => users.find(u => u.username === username)?.email)
+        .filter(Boolean)
+      
       const { data, error } = await supabase.functions.invoke('send-email', {
         body: {
           type: 'assignment',
           to: user.email,
           projectName,
-          personName
+          personName,
+          mentionUsers: mentionUserEmails,
+          mentionUserNames: formData.mention_users
         }
       })
       
       if (error) throw error
       
       if (data?.success) {
-        toast.success(`積算担当者 ${personName} にTeams通知を送信しました`)
+        toast.success(`チャンネル全体にTeams通知を送信しました（担当者: ${personName}）`)
         console.log(`✅ Assignment Teams notification sent for ${personName} (${user.email}) for project: ${projectName}`)
         console.log(`Teams notification details:`, {
           type: 'assignment',
@@ -315,19 +324,25 @@ function App() {
     }
 
     try {
+      const mentionUserEmails = formData.mention_users
+        .map(username => users.find(u => u.username === username)?.email)
+        .filter(Boolean)
+      
       const { data, error } = await supabase.functions.invoke('send-email', {
         body: {
           type: 'completion',
           to: user.email,
           projectName,
-          personName
+          personName,
+          mentionUsers: mentionUserEmails,
+          mentionUserNames: formData.mention_users
         }
       })
       
       if (error) throw error
       
       if (data?.success) {
-        toast.success(`営業担当者 ${personName} にTeams通知を送信しました`)
+        toast.success(`チャンネル全体にTeams通知を送信しました（営業担当者: ${personName}）`)
         console.log(`✅ Completion Teams notification sent for ${personName} (${user.email}) for project: ${projectName}`)
         console.log(`Teams notification details:`, {
           type: 'completion',
@@ -755,6 +770,43 @@ function App() {
                   value={formData.others}
                   onChange={(e) => setFormData({...formData, others: e.target.value})}
                 />
+              </div>
+
+              <div>
+                <Label className="flex items-center space-x-2">
+                  <AtSign className="h-4 w-4" />
+                  <span>メンション対象ユーザー</span>
+                </Label>
+                <div className="grid grid-cols-2 gap-2 mt-2 max-h-32 overflow-y-auto border rounded p-2">
+                  {users.map((user) => (
+                    <label key={user.id} className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.mention_users.includes(user.username)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setFormData({
+                              ...formData,
+                              mention_users: [...formData.mention_users, user.username]
+                            })
+                          } else {
+                            setFormData({
+                              ...formData,
+                              mention_users: formData.mention_users.filter(u => u !== user.username)
+                            })
+                          }
+                        }}
+                        className="rounded"
+                      />
+                      <span className="text-sm">{user.username}</span>
+                    </label>
+                  ))}
+                </div>
+                {formData.mention_users.length > 0 && (
+                  <div className="mt-2 text-sm text-gray-600">
+                    選択中: {formData.mention_users.join(', ')}
+                  </div>
+                )}
               </div>
 
               {editingRequest && (
